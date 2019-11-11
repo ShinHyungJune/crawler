@@ -6,6 +6,9 @@ let event = null;
 
 let replies = [];
 
+let localDomain = "http://localhost:80";
+let realDomain = "https://craw.in-diary.com";
+
 const craw = async () => {
 	try{
 		const browser = await puppeteer.launch({headless: false, args: ["--window-size=1920,1080", '--disable-notifications']});
@@ -46,7 +49,7 @@ const craw = async () => {
 			}
 		}
 
-		await axios.post('http://localhost:80/api/replies', {
+		await axios.post(localDomain + '/api/replies', {
 			"event_id" : event.id,
 			"replies" : replies
 		}).then((response) => {
@@ -63,7 +66,7 @@ const craw = async () => {
 };
 
 
-axios.get('http://localhost:80/api/events', {
+axios.get(localDomain + '/api/events', {
 	params: {
 		take: 1,
 		orderBy: "created_at",

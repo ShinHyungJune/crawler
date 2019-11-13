@@ -18,8 +18,9 @@ const craw = async () => {
 				const nickname = reply.querySelector('a.FPmhX').textContent;
 				const link = reply.querySelector("a.FPmhX").href;
 				const body = reply.querySelector('span').textContent;
+				const repliedAt = reply.querySelector('time').title;
 
-				return {nickname, link, body};
+				return {nickname, link, body, replied_at: repliedAt};
 			}));
 		};
 

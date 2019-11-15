@@ -7,7 +7,6 @@ let event = null;
 let replies = [];
 
 let localDomain = "http://localhost:80";
-let realDomain = "https://craw.in-diary.com";
 
 const craw = async () => {
 	const browser = await puppeteer.launch({headless: false, args: ["--window-size=1920,1080", '--disable-notifications']});

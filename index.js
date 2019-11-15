@@ -7,7 +7,6 @@ let event = null;
 let replies = [];
 
 let localDomain = "http://localhost:80";
-let realDomain = "https://craw.in-diary.com";
 
 const craw = async () => {
 	try{

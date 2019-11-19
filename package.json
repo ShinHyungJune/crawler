@@ -1,7 +1,6 @@
 {
   "name": "craw",
   "version": "1.0.0",
-  "description": "",
   "main": "index.js",
   "scripts": {
     "start": "node index"
@@ -10,6 +9,19 @@
   "license": "ISC",
   "dependencies": {
     "axios": "^0.19.0",
-    "puppeteer": "^2.0.0"
+    "puppeteer": "^2.0.0",
+    "serverless-plugin-include-dependencies": "^4.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ShinHyungJune/crawler.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ShinHyungJune/crawler/issues"
+  },
+  "homepage": "https://github.com/ShinHyungJune/crawler#readme",
+  "description": "",
+  "devDependencies": {
+    "serverless-offline": "^5.12.0"
   }
 }

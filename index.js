@@ -13,6 +13,7 @@ const craw = async () => {
 	const browser = await puppeteer.launch({headless: false, args: ["--window-size=1920,1080", '--disable-notifications']});
 	const page = await browser.newPage();
 	const getReplies = async () => {
+		console.log("야야");
 		replies = await page.$$eval('div.C4VMK', replies => replies.map((reply) => {
 			const nickname = reply.querySelector('a.FPmhX').textContent;
 			const link = reply.querySelector("a.FPmhX").href;
@@ -37,14 +38,12 @@ const craw = async () => {
 		await getReplies();
 	}else{
 		while(btnMore){
-			btnMore.click();
+			await btnMore.click().catch((error) => {
+				console.log(error);
+			});
 			
 			btnMore = await page.waitForSelector('ul.XQXOT button.dCJp8').catch((error) => {
-				console.log(error);
-				
 				btnMore = null;
-				
-				getReplies();
 			});
 		}
 	}

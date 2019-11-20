@@ -19,7 +19,7 @@ const craw = async () => {
 			const link = reply.querySelector("a.FPmhX").href;
 			const body = reply.querySelector('span').textContent;
 			const repliedAt = reply.querySelector('time').title;
-			
+
 			return {nickname, link, body, replied_at: repliedAt};
 		}));
 	};
@@ -42,17 +42,19 @@ const craw = async () => {
 				console.log(error);
 			});
 			
-			btnMore = await page.waitForSelector('ul.XQXOT button.dCJp8').catch((error) => {
-				btnMore = null;
+			btnMore = await page.waitForSelector('ul.XQXOT button.dCJp8').catch(async (error) => {
+				await getReplies();
 			});
 		}
 	}
-	
+
 	await axios.post(localDomain + '/api/replies', {
 		"event_id" : event.id,
 		"replies" : replies
 	}).then((response) => {
 		console.log(response.data);
+	}).catch((error) => {
+		console.log(error.response.data);
 	});
 	
 	await page.close();
@@ -61,7 +63,7 @@ const craw = async () => {
 };
 
 
-axios.get(realDomain + '/api/events', {
+axios.get(localDomain + '/api/events', {
 	params: {
 		take: 1,
 		orderBy: "created_at",

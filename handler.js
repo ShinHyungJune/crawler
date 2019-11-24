@@ -21,7 +21,7 @@ module.exports.crawling = async eventAWS => {
 
 	let result = "test";
 
-	let event = null;
+	let events = null;
 
 	let replies = [];
 
@@ -84,12 +84,15 @@ module.exports.crawling = async eventAWS => {
 
 	await axios.get(realDomain + '/api/events', {
 		params: {
-			take: 1,
 			orderBy: "created_at",
-			align: "desc"
+			align: "desc",
 		}
 	}).then((response) => {
-		event = response.data.data[0];
+		events = response.data.data;
+
+		events.filter((event) => {
+			if()
+		});
 
 		result = response.data;
 
@@ -102,10 +105,6 @@ module.exports.crawling = async eventAWS => {
 
 		console.log(error);
 	});
-
-	await setTimeout(() => {
-
-	}, 30000);
 
 	return {
 		statusCode: 200,

@@ -2,24 +2,23 @@ const axios = require('axios');
 
 const puppeteer = require('puppeteer');
 
-let event = null;
 
 let replies = [];
 
 let localDomain = "http://localhost:80";
 let realDomain = "https://craw.in-diary.com";
 
-const craw = async () => {
+const craw = async (event) => {
 	const browser = await puppeteer.launch({headless: false, args: ["--window-size=1920,1080", '--disable-notifications']});
 	const page = await browser.newPage();
 	const getReplies = async () => {
-		console.log("야야");
 		replies = await page.$$eval('div.C4VMK', replies => replies.map((reply) => {
 			const nickname = reply.querySelector('a.FPmhX').textContent;
 			const link = reply.querySelector("a.FPmhX").href;
 			const body = reply.querySelector('span').textContent;
-			const repliedAt = reply.querySelector('time').title;
+			let repliedAt = new Date(reply.querySelector('time').dateTime);
 
+			repliedAt = `${repliedAt.getFullYear()}년 ${(repliedAt.getMonth() + 1)}월 ${repliedAt.getDate()}일 ${repliedAt.getHours()}시 ${repliedAt.getMinutes()}분 ${repliedAt.getSeconds()}초`;
 			return {nickname, link, body, replied_at: repliedAt};
 		}));
 	};
@@ -65,16 +64,19 @@ const craw = async () => {
 
 axios.get(localDomain + '/api/events', {
 	params: {
-		take: 1,
 		orderBy: "created_at",
-		align: "desc"
+		align: "desc",
+		state: "waiting"
 	}
 }).then((response) => {
-	event = response.data.data[0];
+	let events = response.data.data;
 
-	craw().catch((error) => {
-		console.log(error);
-	});
+	events.map((event) => {
+		if(Date.now() >= Date.parse(event.reservated_at))
+			craw(event).catch((error) => {
+				console.log(error);
+			})
+	})
 }).catch((error) => {
 	console.log(error);
 });

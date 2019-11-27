@@ -9,7 +9,6 @@ const axios = require('axios');
 
 const puppeteer = require('puppeteer');
 
-const jquery = require('jquery');
 
 require('dotenv').config();
 
@@ -45,6 +44,8 @@ const crawInstargram = async (event) => {
 	});
 	
 	await page.goto(event.link_instagram);
+
+	await page.waitFor(3000);
 	
 	let btnMore = await page.$('ul.XQXOT button.dCJp8'); // 더보기 버튼
 	
@@ -142,18 +143,14 @@ const crawFacebook = async (event) => {
 	await btnOpenFilter.click();
 	
 	// 댓글 전체보기 버튼 가져오기(맨 마지막 인덱스에 배치되어있더라)
-	let btnFilterAll = await page.$$eval(tagClass.btnFilter, btnFilters => btnFilters.map((btnFilter, index) => {
-		if(btnFilters.length - 1 === index)
-			btnFilter.click();
-	}));
-	
-	console.log(btnFilterAll.length);
-	
-	btnFilterAll[btnFilterAll.length-1].click();
+	let btnFilters = await page.$$(tagClass.btnFilter);
+
+	btnFilters[btnFilters.length - 1].click();
+
+	page.waitFor(3000);
 	
 	let btnMore = await page.$(tagClass.btnMore);
 	
-	/*
 	if(!btnMore){
 		await getReplies();
 	}else{
@@ -182,8 +179,6 @@ const crawFacebook = async (event) => {
 	await page.close();
 	
 	await browser.close();
-	*/
-	
 };
 
 // 네이버 크롤링
@@ -209,12 +204,6 @@ const crawNaver = async (event) => {
 	
 	const getReplies = async () => {
 		result = await page.$$eval(tagClass.replies, (replies, tagClass) => replies.map((reply) => { // 여러개가 다 잡히면 안되고 딱 그 특정 태그만 잡히도록 설정해야돼 ._77b li로 하면 잣대고 ._77b > li하면 괜찮
-			/* # 타겟이 null로 오면 확인할 것
-				1) 해당 컨텐츠가 화면에 노출되기 전에 가져오려 했는지 확인(수집하기전 page.waitFor를 넉넉하게 줘)
-				2) 타겟클래스를 명확하지 않게 잡았는지(여러개 겹치게 잡았다던지 ex. 더보기 버튼에도 btn_more, 댓글 덧보기 버튼에도 btn_more가 쓰였을 경우 제대로 못가져옴)
-				-> 이럴 경우 클래스를 계단식으로 부모부터 자식까지 하나씩 넣어보는거 추천
-				3) 어떤 댓글은 해당 클래스가 있고, 어떤 댓글은 없는 경우가 있음. 이럴 경우 에러나니까 조건문 처리 해줘야됨(예를 들어 댓글의 닉네임을 가져오려고 하는데 어떤 댓글은 비밀 댓글이라 닉네임이 없어)
-			*/
 			
 			let platform = "naver";
 			let img = reply.querySelector(tagClass.img) ? reply.querySelector(tagClass.img).src : "";
@@ -236,16 +225,16 @@ const crawNaver = async (event) => {
 	};
 	
 	await page.setViewport({
-		width:1000,
-		height:1080
+		width:1400,
+		height:1000
 	});
-	
+
 	await page.goto(event.link_naver); // #실제 event.link
-	
-	await page.waitFor(6000);
-	
+
+	await page.waitFor(5000);
+
 	let btnShowReply = await page.$(tagClass.btnShowReply);
-	
+
 	await btnShowReply.click();
 	
 	await page.waitFor(3000);
@@ -286,9 +275,9 @@ const crawNaver = async (event) => {
 		console.log(error.response.data);
 	});
 	
-	// await page.close();
+	await page.close();
 	
-	// await browser.close();
+	await browser.close();
 
 	
 };
@@ -304,24 +293,25 @@ axios.get(localDomain + '/api/events', {
 	
 	events.map(async (event) => {
 		if(Date.now() >= Date.parse(event.reservated_at)) {
-			/*
+			
 			if(event.link_instagram)
-				await crawInstargram(event).catch((error) => {
+				crawInstargram(event).catch((error) => {
 					console.log(error);
+					// 여기가 실패
 				});
-			*/
 			
 			if(event.link_facebook)
-				await crawFacebook(event).catch((error) => {
+				crawFacebook(event).catch((error) => {
 					console.log(error);
 				});
 	
-			/*
+			
 			if(event.link_naver)
-				await crawNaver(event).catch((error) => {
+				crawNaver(event).catch((error) => {
 					console.log(error);
 				});
-			 */
+			 
+			// 여기가 합격
 		}
 	})
 }).catch((error) => {

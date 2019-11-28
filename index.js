@@ -9,22 +9,19 @@ const axios = require('axios');
 
 const puppeteer = require('puppeteer');
 
-
 require('dotenv').config();
-
-
 
 let localDomain = "http://localhost:80";
 let realDomain = "https://craw.in-diary.com";
+let replies = [];
 
 // 인스타그램 크롤링
 const crawInstargram = async (event) => {
-	let replies = [];
 	
 	const browser = await puppeteer.launch({headless: false, args: ["--window-size=1920,1080", '--disable-notifications']});
 	const page = await browser.newPage();
 	const getReplies = async () => {
-		replies = await page.$$eval('div.C4VMK', replies => replies.map((reply) => {
+		let result = await page.$$eval('div.C4VMK', replies => replies.map((reply) => {
 			const img = "";
 			const platform = "instagram";
 			const nickname = reply.querySelector('a.FPmhX').textContent;
@@ -33,8 +30,11 @@ const crawInstargram = async (event) => {
 			let repliedAt = new Date(reply.querySelector('time').dateTime);
 
 			repliedAt = `${repliedAt.getFullYear()}년 ${(repliedAt.getMonth() + 1)}월 ${repliedAt.getDate()}일 ${repliedAt.getHours()}시 ${repliedAt.getMinutes()}분 ${repliedAt.getSeconds()}초`;
+	
 			return {img, platform, nickname, link, body, replied_at: repliedAt};
 		}));
+		
+		replies = [...replies, ...result];
 	};
 	
 	
@@ -62,15 +62,6 @@ const crawInstargram = async (event) => {
 			});
 		}
 	}
-
-	await axios.post(localDomain + '/api/replies', {
-		"event_id" : event.id,
-		"replies" : replies
-	}).then((response) => {
-		console.log(response.data);
-	}).catch((error) => {
-		console.log(error.response.data);
-	});
 	
 	await page.close();
 	
@@ -102,7 +93,7 @@ const crawFacebook = async (event) => {
 	const page = await browser.newPage();
 	
 	const getReplies = async () => {
-		replies = await page.$$eval("._77bp > li", (replies, tagClass) => replies.map((reply) => { // 여러개가 다 잡히면 안되고 딱 그 특정 태그만 잡히도록 설정해야돼 ._77b li로 하면 잣대고 ._77b > li하면 괜찮
+		let result = await page.$$eval("._77bp > li", (replies, tagClass) => replies.map((reply) => { // 여러개가 다 잡히면 안되고 딱 그 특정 태그만 잡히도록 설정해야돼 ._77b li로 하면 잣대고 ._77b > li하면 괜찮
 
 			const img = reply.querySelector(tagClass.img).src;
 			const platform = "facebook";
@@ -119,6 +110,8 @@ const crawFacebook = async (event) => {
 
 			return {img, platform, nickname, link, body, replied_at:repliedAt};
 		}), tagClass);
+		
+		replies = [...replies, ...result];
 	};
 	
 	await page.setViewport({
@@ -167,15 +160,6 @@ const crawFacebook = async (event) => {
 		}
 	}
 	
-	await axios.post(localDomain + '/api/replies', {
-		"event_id" : event.id,
-		"replies" : replies
-	}).then((response) => {
-		console.log(response.data);
-	}).catch((error) => {
-		console.log(error.response.data);
-	});
-	
 	await page.close();
 	
 	await browser.close();
@@ -183,7 +167,6 @@ const crawFacebook = async (event) => {
 
 // 네이버 크롤링
 const crawNaver = async (event) => {
-	let replies = [];
 	let result = [];
 	
 	let tagClass = {
@@ -266,15 +249,6 @@ const crawNaver = async (event) => {
 	
 	replies = replies.filter(reply => reply !== null);
 	
-	await axios.post(localDomain + '/api/replies', {
-		"event_id" : event.id,
-		"replies" : replies
-	}).then((response) => {
-		console.log(response.data);
-	}).catch((error) => {
-		console.log(error.response.data);
-	});
-	
 	await page.close();
 	
 	await browser.close();
@@ -282,12 +256,34 @@ const crawNaver = async (event) => {
 	
 };
 
+let fail = (error) => {
+	console.log(error);
+	
+	axios.patch("/api/events/" + event.id, {
+		...event,
+		state: "failed"
+	});
+};
+
+let success = () => {
+	axios.post(localDomain + '/api/replies', {
+		"event_id" : event.id,
+		"replies" : replies
+	}).then((response) => {
+		console.log(response.data);
+		
+		replies = [];
+	}).catch((error) => {
+		console.log(error.response.data);
+		
+		replies = [];
+	});
+	
+
+};
+
 axios.get(localDomain + '/api/events', {
-	params: {
-		orderBy: "created_at",
-		align: "desc",
-		state: "waiting"
-	}
+	"state": "waiting",
 }).then((response) => {
 	let events = response.data.data;
 	
@@ -295,23 +291,22 @@ axios.get(localDomain + '/api/events', {
 		if(Date.now() >= Date.parse(event.reservated_at)) {
 			
 			if(event.link_instagram)
-				crawInstargram(event).catch((error) => {
-					console.log(error);
-					// 여기가 실패
+				await crawInstargram(event).catch((error) => {
+					return fail(error);
 				});
 			
 			if(event.link_facebook)
-				crawFacebook(event).catch((error) => {
-					console.log(error);
+				await crawFacebook(event).catch((error) => {
+					return fail(error);
 				});
 	
 			
 			if(event.link_naver)
-				crawNaver(event).catch((error) => {
-					console.log(error);
+				await crawNaver(event).catch((error) => {
+					return fail(error);
 				});
 			 
-			// 여기가 합격
+			success();
 		}
 	})
 }).catch((error) => {

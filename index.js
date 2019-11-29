@@ -26,7 +26,7 @@ const crawInstargram = async (event) => {
 			const platform = "instagram";
 			const nickname = reply.querySelector('a.FPmhX').textContent;
 			const link = reply.querySelector("a.FPmhX").href;
-			const body = reply.querySelector('span').textContent;
+			const body = reply.querySelector('span').textContent ? reply.querySelector('span').textContent : "";
 			let repliedAt = new Date(reply.querySelector('time').dateTime);
 
 			repliedAt = `${repliedAt.getFullYear()}년 ${(repliedAt.getMonth() + 1)}월 ${repliedAt.getDate()}일 ${repliedAt.getHours()}시 ${repliedAt.getMinutes()}분 ${repliedAt.getSeconds()}초`;
@@ -50,7 +50,7 @@ const crawInstargram = async (event) => {
 	let btnMore = await page.$('ul.XQXOT button.dCJp8'); // 더보기 버튼
 	
 	if(!btnMore){
-		await getReplies();
+		await getReplies().catch(error => fail(error, event));
 	}else{
 		while(btnMore){
 			await btnMore.click().catch((error) => {
@@ -58,7 +58,7 @@ const crawInstargram = async (event) => {
 			});
 			
 			btnMore = await page.waitForSelector('ul.XQXOT button.dCJp8').catch(async (error) => {
-				await getReplies();
+				await getReplies().catch(error => fail(error, event));
 			});
 		}
 	}
@@ -145,7 +145,7 @@ const crawFacebook = async (event) => {
 	let btnMore = await page.$(tagClass.btnMore);
 	
 	if(!btnMore){
-		await getReplies();
+		await getReplies().catch(error => fail(error, event));
 	}else{
 		while(btnMore){
 			await btnMore.click().catch((error) => {
@@ -153,9 +153,7 @@ const crawFacebook = async (event) => {
 			});
 			
 			btnMore = await page.waitForSelector(tagClass.btnMore).catch(async (error) => {
-				await getReplies();
-				
-				console.log(replies);
+				await getReplies().catch(error => fail(error, event));
 			});
 		}
 	}
@@ -167,105 +165,110 @@ const crawFacebook = async (event) => {
 
 // 네이버 크롤링
 const crawNaver = async (event) => {
-	let result = [];
-	
-	let tagClass = {
-		btnShowReply: ".btn_comment",
-		page: "a.u_cbox_page .u_cbox_num_page",
-		btnMore: ".btn_pagination .prev",
-		btnMoreDisabled: ".btn_pagination .prev.dimmed",
-		replies: ".u_cbox_content_wrap > .u_cbox_list > li",
-		nickname: ".u_cbox_name",
-		body: ".u_cbox_contents",
-		repliedAt: ".u_cbox_date",
-		img: "img.u_cbox_img_profile"
-	};
-	
-	const browser = await puppeteer.launch({headless: false, args: ["--window-size=1920,1080", '--disable-notifications']});
-	
-	const page = await browser.newPage();
-	
-	const getReplies = async () => {
-		result = await page.$$eval(tagClass.replies, (replies, tagClass) => replies.map((reply) => { // 여러개가 다 잡히면 안되고 딱 그 특정 태그만 잡히도록 설정해야돼 ._77b li로 하면 잣대고 ._77b > li하면 괜찮
-			
-			let platform = "naver";
-			let img = reply.querySelector(tagClass.img) ? reply.querySelector(tagClass.img).src : "";
-			let nickname = reply.querySelector(tagClass.nickname) ? reply.querySelector(tagClass.nickname).textContent : "";
-			let link = reply.querySelector(tagClass.nickname) ? reply.querySelector(tagClass.nickname).href : "";
-			let body = reply.querySelector(tagClass.body) ? reply.querySelector(tagClass.body).textContent : "";
-			let repliedAt = reply.querySelector(tagClass.repliedAt) ? new Date(reply.querySelector(tagClass.repliedAt).getAttribute("data-value")) : "";
-			
-			if(repliedAt !== "")
-				repliedAt = `${repliedAt.getFullYear()}년 ${(repliedAt.getMonth() + 1)}월 ${repliedAt.getDate()}일 ${repliedAt.getHours()}시 ${repliedAt.getMinutes()}분 ${repliedAt.getSeconds()}초`;
-			
-			if(nickname !== "") // 비밀댓글이 아닐 경우만 댓글목록에 추가
-				return {img, platform, nickname, link, body, replied_at:repliedAt};
-		}), tagClass);
-		
-		replies = [...replies, ...result];
-		
-		result = [];
-	};
-	
-	await page.setViewport({
-		width:1400,
-		height:1000
-	});
+		let result = [];
 
-	await page.goto(event.link_naver); // #실제 event.link
+		let tagClass = {
+			btnShowReply: ".btn_comment",
+			page: "a.u_cbox_page .u_cbox_num_page",
+			btnMore: ".btn_pagination .prev",
+			btnMoreDisabled: ".btn_pagination .prev.dimmed",
+			replies: ".u_cbox_content_wrap > .u_cbox_list > li",
+			nickname: ".u_cbox_name",
+			body: ".u_cbox_contents",
+			repliedAt: ".u_cbox_date",
+			img: "img.u_cbox_img_profile"
+		};
 
-	await page.waitFor(5000);
+		const browser = await puppeteer.launch({headless: false, args: ["--window-size=1920,1080", '--disable-notifications']});
 
-	let btnShowReply = await page.$(tagClass.btnShowReply);
+		const page = await browser.newPage();
 
-	await btnShowReply.click();
-	
-	await page.waitFor(3000);
-	
-	let btnMore = await page.$(tagClass.btnMore);
-	
-	let btnMoreDisabled = await page.$(tagClass.btnMoreDisabled); // 더 볼 페이지가 없을 경우 보이는 버튼
-	
-	let rotate = async () => {
-		if(btnMoreDisabled)
-			return null;
-		
-		await getReplies();
-		
-		await btnMore.click().catch((error) => {
-			console.log(error);
+		const getReplies = async () => {
+			result = await page.$$eval(tagClass.replies, (replies, tagClass) => replies.map((reply) => { // 여러개가 다 잡히면 안되고 딱 그 특정 태그만 잡히도록 설정해야돼 ._77b li로 하면 잣대고 ._77b > li하면 괜찮
+
+				let platform = "naver";
+				let img = reply.querySelector(tagClass.img) ? reply.querySelector(tagClass.img).src : "";
+				let nickname = reply.querySelector(tagClass.nickname) ? reply.querySelector(tagClass.nickname).textContent : "";
+				let link = reply.querySelector(tagClass.nickname) ? reply.querySelector(tagClass.nickname).href : "";
+				let body = reply.querySelector(tagClass.body) ? reply.querySelector(tagClass.body).textContent : "";
+				let repliedAt = reply.querySelector(tagClass.repliedAt) ? new Date(reply.querySelector(tagClass.repliedAt).getAttribute("data-value")) : "";
+
+				if(repliedAt !== "")
+					repliedAt = `${repliedAt.getFullYear()}년 ${(repliedAt.getMonth() + 1)}월 ${repliedAt.getDate()}일 ${repliedAt.getHours()}시 ${repliedAt.getMinutes()}분 ${repliedAt.getSeconds()}초`;
+
+				if(nickname !== "") // 비밀댓글이 아닐 경우만 댓글목록에 추가
+					return {img, platform, nickname, link, body, replied_at:repliedAt};
+			}), tagClass);
+
+			replies = [...replies, ...result];
+
+			result = [];
+		};
+
+		await page.setViewport({
+			width:1400,
+			height:1000
 		});
-		
-		btnMoreDisabled = await page.$(tagClass.btnMoreDisabled);
-		
-		rotate();
-	};
-	
-	if(btnMoreDisabled){
-		await getReplies();
-	}else{
-		await rotate();
-	}
-	
-	replies = replies.filter(reply => reply !== null);
-	
-	await page.close();
-	
-	await browser.close();
 
-	
+		await page.goto(event.link_naver); // #실제 event.link
+
+		await page.waitFor(5000);
+
+		let btnShowReply = await page.$(tagClass.btnShowReply);
+
+		await btnShowReply.click();
+
+		await page.waitFor(3000);
+
+		let btnMore = await page.$(tagClass.btnMore);
+
+		let btnMoreDisabled = await page.$(tagClass.btnMoreDisabled); // 더 볼 페이지가 없을 경우 보이는 버튼
+
+		let rotate = async () => {
+			if(btnMoreDisabled) {
+
+				replies = replies.filter(reply => reply !== null && reply.body.length !== 0);
+				
+				await page.close();
+
+				await browser.close();
+
+				return null;
+			}
+
+			await getReplies().catch(error => fail(error, event));
+
+			await btnMore.click().catch((error) => {
+				console.log("3" + error);
+			});
+
+			btnMoreDisabled = await page.$(tagClass.btnMoreDisabled);
+
+			await rotate().catch(error => fail(error, event));
+		};
+
+		if(btnMoreDisabled){
+			await getReplies().catch(error => fail(error, event));
+		}else{
+			await rotate().catch(error => fail(error, event));
+		}
+
 };
 
-let fail = (error) => {
+let failed = false;
+
+let fail = (error, event) => {
 	console.log(error);
-	
+
+	failed = true;
+
 	axios.patch("/api/events/" + event.id, {
 		...event,
 		state: "failed"
 	});
 };
 
-let success = () => {
+let success = (event) => {
 	axios.post(localDomain + '/api/replies', {
 		"event_id" : event.id,
 		"replies" : replies
@@ -278,35 +281,37 @@ let success = () => {
 		
 		replies = [];
 	});
-	
-
 };
 
 axios.get(localDomain + '/api/events', {
-	"state": "waiting",
+	params: {
+		"state": "waiting"
+	}
 }).then((response) => {
 	let events = response.data.data;
-	
+	let promises = [];
+
 	events.map(async (event) => {
 		if(Date.now() >= Date.parse(event.reservated_at)) {
-			
+
 			if(event.link_instagram)
-				await crawInstargram(event).catch((error) => {
-					return fail(error);
-				});
+				promises.push(crawInstargram(event));
 			
 			if(event.link_facebook)
-				await crawFacebook(event).catch((error) => {
-					return fail(error);
-				});
-	
+				promises.push(crawFacebook(event));
+
 			
 			if(event.link_naver)
-				await crawNaver(event).catch((error) => {
-					return fail(error);
-				});
-			 
-			success();
+				promises.push(crawNaver(event));
+
+			Promise.all(promises)
+				.then(() => {
+					if(!failed)
+						success(event);
+				}).catch(error => {
+					fail(error, event);
+			})
+
 		}
 	})
 }).catch((error) => {

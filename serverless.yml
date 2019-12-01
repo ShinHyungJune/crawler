@@ -41,7 +41,16 @@ custom:
 #  region: us-east-1
 
 # you can add statements to the Lambda function's IAM Role here
-#  iamRoleStatements:
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - "logs:CreateLogGroup"
+        - "logs:CreateLogStream"
+        - "logs:PutLogEvents"
+        - "logs:DescribeLogStreams"
+      Resource:
+        Fn::Join:
+          - - "arn:aws:logs:*:*:*"
 #    - Effect: "Allow"
 #      Action:
 #        - "s3:ListBucket"

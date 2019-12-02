@@ -1,7 +1,7 @@
 {
   "name": "craw",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "index-copy.js",
   "scripts": {
     "start": "node index"
   },

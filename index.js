@@ -24,7 +24,7 @@ app.get("/", (req, res) => {
 // 인스타그램 크롤링
 	const crawInstargram = async (event) => {
 		
-		const browser = await puppeteer.launch({headless: true, args: ["--window-size=1920,1080", '--disable-notifications', '--no-sandbox']});
+		const browser = await puppeteer.launch({headless: true, args: ["--window-size=1920,1080", '--disable-notifications', '--disable-gpu', '--no-sandbox']});
 		const page = await browser.newPage();
 		const getReplies = async () => {
 			let result = await page.$$eval('div.C4VMK', replies => replies.map((reply) => {

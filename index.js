@@ -16,7 +16,7 @@ app.get("/", (req, res) => {
 	const puppeteer = require('puppeteer');
 	
 	require('dotenv').config();
-	let domain =  process.env.SERVICE_DOMAIN ? process.env.SERVICE_DOMAIN : "http://localhost:80";
+	let domain =  process.env.SERVICE_DOMAIN ? process.env.SERVICE_DOMAIN : "https://craw.in-diary.com";
 	
 	console.log(domain);
 	let replies = [];

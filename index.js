@@ -1,5 +1,7 @@
 const express = require('express');
 const app = express();
+const port = process.env.PORT || 3000; // process.env.PORT 내가 설정한 env에 있는거 들어가는게 아니라 heroku에서 제공하는게 들어가야돼
+
 
 app.get("/", (req, res) => {
 	/* # 타겟이 null로 오면 확인할 것
@@ -330,6 +332,6 @@ app.get("/", (req, res) => {
 	
 });
 
-app.listen(3000);
+app.listen(port);
 
-console.log("server port:3000");
+console.log("server port:" + port);

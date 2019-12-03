@@ -15,6 +15,7 @@ const puppeteer = require('puppeteer');
 require('dotenv').config();
 
 let domain =  process.env.SERVICE_DOMAIN ? process.env.SERVICE_DOMAIN : "https://craw.in-diary.com";
+// let domain =  "https://craw.in-diary.com";
 
 let replies = [];
 
@@ -23,7 +24,9 @@ exports.craw = async (req, res) => {
 	const crawInstargram = async (event) => {
 		
 		const browser = await puppeteer.launch({headless: true, args: ['--no-sandbox',  '--disable-setuid-sandbox']});
+		
 		const page = await browser.newPage();
+		
 		const getReplies = async () => {
 			let result = await page.$$eval('div.C4VMK', replies => replies.map((reply) => {
 				const img = "";
@@ -41,11 +44,12 @@ exports.craw = async (req, res) => {
 			replies = [...replies, ...result];
 		};
 		
-		
+		/*
 		await page.setViewport({
 			width:1000,
 			height:1080
 		});
+		*/
 		
 		await page.goto(event.link_instagram);
 		
@@ -67,12 +71,13 @@ exports.craw = async (req, res) => {
 			}
 		}
 		
+		
 		await page.close();
 		
 		await browser.close();
 	};
 
-// 페이스북 크롤링
+	// 페이스북 크롤링
 	const crawFacebook = async (event) => {
 		let replies = [];
 		
@@ -92,7 +97,7 @@ exports.craw = async (req, res) => {
 			password: process.env.FACEBOOK_PASSWORD,
 		};
 		
-		const browser = await puppeteer.launch({headless: false, args: ["--window-size=1920,1080", '--disable-notifications']});
+		const browser = await puppeteer.launch({headless: true, args: ["--window-size=1920,1080", '--disable-notifications', '--no-sandbox']});
 		
 		const page = await browser.newPage();
 		
@@ -118,10 +123,12 @@ exports.craw = async (req, res) => {
 			replies = [...replies, ...result];
 		};
 		
+		/*
 		await page.setViewport({
 			width:1000,
 			height:1080
 		});
+		 */
 		
 		await page.goto(event.link_facebook); // #실제 event.link
 		
@@ -183,7 +190,7 @@ exports.craw = async (req, res) => {
 			img: "img.u_cbox_img_profile"
 		};
 		
-		const browser = await puppeteer.launch({headless: false, args: ["--window-size=1920,1080", '--disable-notifications']});
+		const browser = await puppeteer.launch({headless: true, args: ["--window-size=1920,1080", '--disable-notifications', '--no-sandbox']});
 		
 		const page = await browser.newPage();
 		
@@ -209,10 +216,11 @@ exports.craw = async (req, res) => {
 			result = [];
 		};
 		
+		/*
 		await page.setViewport({
 			width:1400,
 			height:1000
-		});
+		}); */
 		
 		await page.goto(event.link_naver); // #실제 event.link
 		
@@ -240,7 +248,7 @@ exports.craw = async (req, res) => {
 				return null;
 			}
 			
-			await getReplies().catch(error => fail(error, event));
+			await getReplies().catch(error => fail("02: " + error, event));
 			
 			await btnMore.click().catch((error) => {
 				console.log("3" + error);
@@ -248,13 +256,13 @@ exports.craw = async (req, res) => {
 			
 			btnMoreDisabled = await page.$(tagClass.btnMoreDisabled);
 			
-			await rotate().catch(error => fail(error, event));
+			await rotate().catch(error => fail("03: " +error, event));
 		};
 		
 		if(btnMoreDisabled){
-			await getReplies().catch(error => fail(error, event));
+			await getReplies().catch(error => fail("04: " +error, event));
 		}else{
-			await rotate().catch(error => fail(error, event));
+			await rotate().catch(error => fail("05: " +error, event));
 		}
 		
 	};
@@ -266,10 +274,12 @@ exports.craw = async (req, res) => {
 		
 		failed = true;
 		
-		axios.patch("/api/events/" + event.id, {
+		axios.patch(domain + "/api/events/" + event.id, {
 			...event,
 			state: "failed"
 		});
+		
+		return res.send(error);
 	};
 	
 	let success = (event) => {
@@ -277,14 +287,14 @@ exports.craw = async (req, res) => {
 			"event_id" : event.id,
 			"replies" : replies
 		}).then((response) => {
-			console.log(response.data);
-			
 			replies = [];
 		}).catch((error) => {
 			console.log(error.response.data);
 			
 			replies = [];
 		});
+		
+		return res.send("sucess: " + event);
 	};
 	
 	axios.get(domain + '/api/events', {
@@ -295,25 +305,29 @@ exports.craw = async (req, res) => {
 		let events = response.data.data;
 		let promises = [];
 		
+		if(!events)
+			return res.send("nothing to do");
+		
 		events.map(async (event) => {
 			if(Date.now() >= Date.parse(event.reservated_at)) {
 				
 				if(event.link_instagram)
 					promises.push(crawInstargram(event));
 				
+				/*
 				if(event.link_facebook)
 					promises.push(crawFacebook(event));
 				
-				
 				if(event.link_naver)
 					promises.push(crawNaver(event));
+				 */
 				
 				Promise.all(promises)
 					.then(() => {
 						if(!failed)
 							success(event);
 					}).catch(error => {
-					fail(error, event);
+						fail("01" + error, event);
 				})
 				
 			}

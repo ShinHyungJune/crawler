@@ -2,6 +2,9 @@
   "name": "craw",
   "version": "1.0.0",
   "main": "index-copy.js",
+  "config": {
+    "port": "3000"
+  },
   "scripts": {
     "start": "functions-framework --target=craw"
   },
@@ -14,6 +17,7 @@
     "express": "^4.17.1",
     "fs": "0.0.1-security",
     "jquery": "^3.4.1",
+    "moment": "^2.24.0",
     "puppeteer": "^2.0.0",
     "serverless-plugin-include-dependencies": "^4.0.0"
   },

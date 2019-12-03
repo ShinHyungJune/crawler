@@ -14,8 +14,9 @@ const puppeteer = require('puppeteer');
 
 require('dotenv').config();
 
-let domain =  process.env.SERVICE_DOMAIN ? process.env.SERVICE_DOMAIN : "https://craw.in-diary.com";
-// let domain =  "https://craw.in-diary.com";
+// let domain =  process.env.APP_ENV === "local" ? "http://localhost" : "https://craw.in-diary.com";
+let domain = "http://localhost:9000";
+let headless = process.env.APP_ENV === "local" ? false : true;
 
 let replies = [];
 
@@ -23,7 +24,7 @@ exports.craw = async (req, res) => {
 	// 인스타그램 크롤링
 	const crawInstargram = async (event) => {
 		
-		const browser = await puppeteer.launch({headless: true, args: ['--no-sandbox',  '--disable-setuid-sandbox']});
+		const browser = await puppeteer.launch({headless: headless, args: ['--no-sandbox',  '--disable-setuid-sandbox']});
 		
 		const page = await browser.newPage();
 		
@@ -35,15 +36,16 @@ exports.craw = async (req, res) => {
 				const link = reply.querySelector("a.FPmhX").href;
 				const body = reply.querySelector('span').textContent ? reply.querySelector('span').textContent : "";
 				let repliedAt = new Date(reply.querySelector('time').dateTime);
-				
-				repliedAt = `${repliedAt.getFullYear()}년 ${(repliedAt.getMonth() + 1)}월 ${repliedAt.getDate()}일 ${repliedAt.getHours()}시 ${repliedAt.getMinutes()}분 ${repliedAt.getSeconds()}초`;
+
+				repliedAt = `${repliedAt.getFullYear()}-${(repliedAt.getMonth() + 1)}-${repliedAt.getDate()} ${repliedAt.getHours()}:${repliedAt.getMinutes()}:${repliedAt.getSeconds()}`;
+				/*repliedAt = `${repliedAt.getFullYear()}년 ${(repliedAt.getMonth() + 1)}월 ${repliedAt.getDate()}일 ${repliedAt.getHours()}시 ${repliedAt.getMinutes()}분 ${repliedAt.getSeconds()}초`;*/
 				
 				return {img, platform, nickname, link, body, replied_at: repliedAt};
 			}));
 			
 			replies = [...replies, ...result];
 		};
-		
+
 		/*
 		await page.setViewport({
 			width:1000,
@@ -79,8 +81,7 @@ exports.craw = async (req, res) => {
 
 	// 페이스북 크롤링
 	const crawFacebook = async (event) => {
-		let replies = [];
-		
+
 		const tagClass = {
 			btnMore: "._6iiz._77br a",
 			btnOpenFilter: "._6iin ._21q1",
@@ -91,70 +92,68 @@ exports.craw = async (req, res) => {
 			repliedAt: "abbr",
 			img: ".img"
 		};
-		
+
 		const user = {
 			email: process.env.FACEBOOK_EMAIL,
 			password: process.env.FACEBOOK_PASSWORD,
 		};
-		
-		const browser = await puppeteer.launch({headless: true, args: ["--window-size=1920,1080", '--disable-notifications', '--no-sandbox']});
-		
+
+		const browser = await puppeteer.launch({headless: headless, args: ["--window-size=1920,1080", '--disable-notifications', "--no-sandbox"]});
+
 		const page = await browser.newPage();
-		
+
 		const getReplies = async () => {
 			let result = await page.$$eval("._77bp > li", (replies, tagClass) => replies.map((reply) => { // 여러개가 다 잡히면 안되고 딱 그 특정 태그만 잡히도록 설정해야돼 ._77b li로 하면 잣대고 ._77b > li하면 괜찮
-				
+
 				const img = reply.querySelector(tagClass.img).src;
 				const platform = "facebook";
 				const nickname = reply.querySelector(tagClass.nickname).textContent;
 				const link = reply.querySelector(tagClass.nickname).href;
 				const body = reply.querySelector(tagClass.body).textContent;
-				let repliedAt = Date(reply.querySelector(tagClass.repliedAt).getAttribute("data-utime"));
-				
-				repliedAt = Date.parse(repliedAt);
-				
-				repliedAt = new Date(repliedAt);
-				
-				repliedAt = `${repliedAt.getFullYear()}년 ${(repliedAt.getMonth() + 1)}월 ${repliedAt.getDate()}일 ${repliedAt.getHours()}시 ${repliedAt.getMinutes()}분 ${repliedAt.getSeconds()}초`;
-				
-				return {img, platform, nickname, link, body, replied_at:repliedAt};
+				let repliedAt = reply.querySelector(tagClass.repliedAt).getAttribute("data-utime");
+
+				repliedAt = new Date(repliedAt * 1000);
+
+				repliedAt = `${repliedAt.getFullYear()}-${(repliedAt.getMonth() + 1)}-${repliedAt.getDate()} ${repliedAt.getHours()}:${repliedAt.getMinutes()}:${repliedAt.getSeconds()}`;
+
+				return {img, platform, nickname, link, body, replied_at: repliedAt};
 			}), tagClass);
-			
+
 			replies = [...replies, ...result];
+
 		};
-		
-		/*
+
 		await page.setViewport({
 			width:1000,
 			height:1080
 		});
-		 */
-		
+
 		await page.goto(event.link_facebook); // #실제 event.link
-		
+
 		// 로그인
 		await page.evaluate((user) => {
 			document.getElementsByName('email')[0].value = user.email;
 			document.getElementsByName('pass')[0].value = user.password;
 			document.querySelector("#loginbutton").click();
 		}, user);
-		
-		// 이벤트 페이지로 이동
-		await page.waitFor(10000);
-		
+
+		await page.waitFor(20000);
+
 		let btnOpenFilter = await page.$(tagClass.btnOpenFilter);
-		
+
 		await btnOpenFilter.click();
-		
+
+		await page.waitFor(3000);
+
 		// 댓글 전체보기 버튼 가져오기(맨 마지막 인덱스에 배치되어있더라)
 		let btnFilters = await page.$$(tagClass.btnFilter);
-		
+
 		btnFilters[btnFilters.length - 1].click();
-		
+
 		page.waitFor(3000);
-		
+
 		let btnMore = await page.$(tagClass.btnMore);
-		
+
 		if(!btnMore){
 			await getReplies().catch(error => fail(error, event));
 		}else{
@@ -162,15 +161,15 @@ exports.craw = async (req, res) => {
 				await btnMore.click().catch((error) => {
 					console.log(error);
 				});
-				
+
 				btnMore = await page.waitForSelector(tagClass.btnMore).catch(async (error) => {
 					await getReplies().catch(error => fail(error, event));
 				});
 			}
 		}
-		
+
 		await page.close();
-		
+
 		await browser.close();
 	};
 
@@ -190,7 +189,7 @@ exports.craw = async (req, res) => {
 			img: "img.u_cbox_img_profile"
 		};
 		
-		const browser = await puppeteer.launch({headless: true, args: ["--window-size=1920,1080", '--disable-notifications', '--no-sandbox']});
+		const browser = await puppeteer.launch({headless: headless, args: ["--window-size=1920,1080", '--disable-notifications', '--no-sandbox']});
 		
 		const page = await browser.newPage();
 		
@@ -202,10 +201,13 @@ exports.craw = async (req, res) => {
 				let nickname = reply.querySelector(tagClass.nickname) ? reply.querySelector(tagClass.nickname).textContent : "";
 				let link = reply.querySelector(tagClass.nickname) ? reply.querySelector(tagClass.nickname).href : "";
 				let body = reply.querySelector(tagClass.body) ? reply.querySelector(tagClass.body).textContent : "";
-				let repliedAt = reply.querySelector(tagClass.repliedAt) ? new Date(reply.querySelector(tagClass.repliedAt).getAttribute("data-value")) : "";
+				let repliedAt = reply.querySelector(tagClass.repliedAt) ? new Date(reply.querySelector(tagClass.repliedAt).getAttribute("data-value")) : null;
+
+				if(repliedAt)
+					repliedAt = `${repliedAt.getFullYear()}-${(repliedAt.getMonth() + 1)}-${repliedAt.getDate()} ${repliedAt.getHours()}:${repliedAt.getMinutes()}:${repliedAt.getSeconds()}`;
 				
-				if(repliedAt !== "")
-					repliedAt = `${repliedAt.getFullYear()}년 ${(repliedAt.getMonth() + 1)}월 ${repliedAt.getDate()}일 ${repliedAt.getHours()}시 ${repliedAt.getMinutes()}분 ${repliedAt.getSeconds()}초`;
+				/*if(repliedAt !== "")
+					repliedAt = `${repliedAt.getFullYear()}년 ${(repliedAt.getMonth() + 1)}월 ${repliedAt.getDate()}일 ${repliedAt.getHours()}시 ${repliedAt.getMinutes()}분 ${repliedAt.getSeconds()}초`;*/
 				
 				if(nickname !== "") // 비밀댓글이 아닐 경우만 댓글목록에 추가
 					return {img, platform, nickname, link, body, replied_at:repliedAt};
@@ -314,14 +316,12 @@ exports.craw = async (req, res) => {
 				if(event.link_instagram)
 					promises.push(crawInstargram(event));
 				
-				/*
 				if(event.link_facebook)
 					promises.push(crawFacebook(event));
 				
 				if(event.link_naver)
 					promises.push(crawNaver(event));
-				 */
-				
+
 				Promise.all(promises)
 					.then(() => {
 						if(!failed)

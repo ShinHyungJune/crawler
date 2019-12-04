@@ -1,12 +1,12 @@
 {
   "name": "craw",
   "version": "1.0.0",
-  "main": "index-copy.js",
+  "main": "index.js",
   "config": {
     "port": "3000"
   },
   "scripts": {
-    "start": "node index.js"
+    "start": "functions-framework --target=craw"
   },
   "author": "",
   "license": "ISC",

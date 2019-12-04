@@ -5,11 +5,6 @@
 	3) 어떤 댓글은 해당 클래스가 있고, 어떤 댓글은 없는 경우가 있음. 이럴 경우 에러나니까 조건문 처리 해줘야됨(예를 들어 댓글의 닉네임을 가져오려고 하는데 어떤 댓글은 비밀 댓글이라 닉네임이 없어)
 */
 
-const express = require('express');
-const app = express();
-
-app.set('port', (process.env.PORT || 5000));
-
 const axios = require('axios');
 
 const puppeteer = require('puppeteer');
@@ -22,11 +17,12 @@ let domain = "https://craw.in-diary.com";
 
 // let headless = process.env.APP_ENV === "local" ? false : true;
 
-let headless = true;
+let headless = false;
 
 let replies = [];
 
-app.get('/', async function(request, response) {
+exports.craw = async (req, res) => {
+	
 	axios.get(domain + '/api/events', {
 		params: {
 			"state": "waiting"
@@ -44,13 +40,11 @@ app.get('/', async function(request, response) {
 				if (event.link_facebook)
 					promises.push(crawFacebook(event));
 				
-				/*
 				if(event.link_naver)
 					promises.push(crawNaver(event));
 				
 				if(event.link_instagram)
 					promises.push(crawInstargram(event));
-				 */
 				
 				Promise.all(promises)
 					.then(() => {
@@ -97,12 +91,10 @@ app.get('/', async function(request, response) {
 			replies = [...replies, ...result];
 		};
 		
-		/*
 		await page.setViewport({
 			width:1000,
 			height:1080
 		});
-		*/
 		
 		await page.goto(event.link_instagram);
 		
@@ -133,7 +125,7 @@ app.get('/', async function(request, response) {
 	// 페이스북 크롤링
 	const crawFacebook = async (event) => {
 		
-		const ip = "124.198.46.8:6498";
+		// const ip = "124.198.46.8:6498";
 		
 		const tagClass = {
 			btnMore: "._6iiz._77br a",
@@ -153,7 +145,7 @@ app.get('/', async function(request, response) {
 		
 		let browser = await puppeteer.launch({
 			headless: headless,
-			args: ["--window-size=1920,1080", '--disable-notifications', "--no-sandbox", `--proxy-server=${ip}`, "--ignore-certificate-errors"]
+			args: ["--window-size=1920,1080", '--disable-notifications', "--no-sandbox"]
 		});
 		
 		let page = await browser.newPage();
@@ -234,7 +226,7 @@ app.get('/', async function(request, response) {
 			document.querySelector("#loginbutton").click();
 		}, user);
 		
-		await page.waitFor(15000);
+		await page.waitFor(30000);
 		
 		let btnOpenFilter = await page.$(tagClass.btnOpenFilter);
 		
@@ -322,11 +314,10 @@ app.get('/', async function(request, response) {
 			result = [];
 		};
 		
-		/*
 		await page.setViewport({
 			width:1400,
 			height:1000
-		}); */
+		});
 		
 		await page.goto(event.link_naver); // #실제 event.link
 		
@@ -399,7 +390,7 @@ app.get('/', async function(request, response) {
 			
 			replies = [];
 		});
-	}
-});
+	};
+};
 
 

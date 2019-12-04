@@ -5,11 +5,6 @@
 	3) 어떤 댓글은 해당 클래스가 있고, 어떤 댓글은 없는 경우가 있음. 이럴 경우 에러나니까 조건문 처리 해줘야됨(예를 들어 댓글의 닉네임을 가져오려고 하는데 어떤 댓글은 비밀 댓글이라 닉네임이 없어)
 */
 
-const express = require('express');
-const app = express();
-
-app.set('port', (process.env.PORT || 5000));
-
 const axios = require('axios');
 
 const puppeteer = require('puppeteer');
@@ -26,7 +21,8 @@ let headless = true;
 
 let replies = [];
 
-app.get('/', async function(request, response) {
+exports.craw = async (req, res) => {
+	
 	axios.get(domain + '/api/events', {
 		params: {
 			"state": "waiting"
@@ -399,7 +395,9 @@ app.get('/', async function(request, response) {
 			
 			replies = [];
 		});
-	}
-});
+		
+		return res.send("sucess: " + event);
+	};
+};
 
 

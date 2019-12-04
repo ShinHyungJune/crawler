@@ -6,7 +6,7 @@
     "port": "3000"
   },
   "scripts": {
-    "start": "functions-framework --target=craw"
+    "start": "node index.js"
   },
   "author": "",
   "license": "ISC",

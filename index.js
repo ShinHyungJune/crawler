@@ -12,8 +12,8 @@ const puppeteer = require('puppeteer');
 require('dotenv').config();
 
 // let domain = "https://craw-dev.in-diary.com";
-// let domain = "http://localhost";
-let domain = "https://craw.in-diary.com";
+let domain = "http://localhost";
+// let domain = "https://craw.in-diary.com";
 
 // let headless = process.env.APP_ENV === "local" ? false : true;
 
@@ -39,10 +39,10 @@ exports.craw = async (req, res) => {
 				
 				if (event.link_facebook)
 					promises.push(crawFacebook(event));
-				
+
 				if(event.link_naver)
 					promises.push(crawNaver(event));
-				
+
 				if(event.link_instagram)
 					promises.push(crawInstargram(event));
 				
@@ -87,7 +87,9 @@ exports.craw = async (req, res) => {
 				
 				return {img, platform, nickname, link, body, replied_at: repliedAt};
 			}));
-			
+
+			result = result.shift();
+
 			replies = [...replies, ...result];
 		};
 		
@@ -205,6 +207,8 @@ exports.craw = async (req, res) => {
 				
 				return {img, platform, nickname, link, body, replied_at: repliedAt};
 			}), tagClass);
+
+			result = result.shift();
 			
 			replies = [...replies, ...result];
 			

@@ -31,6 +31,6 @@
   "homepage": "https://github.com/ShinHyungJune/crawler#readme",
   "description": "",
   "devDependencies": {
-    "serverless-offline": "^5.12.0"
+    "serverless-offline": "^12.0.4"
   }
 }
